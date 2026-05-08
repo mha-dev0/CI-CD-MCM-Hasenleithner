@@ -52,11 +52,4 @@ jobs:
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: |
-            product-catalog:${{ github.sha }}
-            ghcr.io/mha-dev0/ci-cd-mcm-hasenleithner/product-catalog:${{ github.sha }}
-
-
-
-
-  # TODO: Add docker-build job that builds and tags the Docker image
+          tags: ghcr.io/mha-dev0/ci-cd-mcm-hasenleithner/product-catalog:${{ github.sha }}
