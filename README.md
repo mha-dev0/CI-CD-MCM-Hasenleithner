@@ -1,8 +1,7 @@
 # Exercise 2: Microservice Architecture, Docker & GitHub Actions
-
+[![CI](https://github.com/mha-dev0/CI-CD-MCM-Hasenleithner/actions/workflows/ci.yml/badge.svg)](https://github.com/mha-dev0/CI-CD-MCM-Hasenleithner/actions/workflows/ci.yml)
 **Course:** Continuous Delivery in Agile Software Development (Master)
 **Points:** 24
-
 ## Learning Objectives
 
 - Understand microservice architecture with a REST API in Go
