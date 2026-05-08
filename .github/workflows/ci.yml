@@ -54,8 +54,7 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
             product-catalog:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/product-catalog:${{ github.sha }}
-
+            ghcr.io/mha-dev0/ci-cd-mcm-hasenleithner/product-catalog:${{ github.sha }}
 
 
 
