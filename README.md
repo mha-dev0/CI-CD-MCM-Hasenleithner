@@ -25,6 +25,15 @@
 - **Coverage reporting** -- `go test -coverprofile`
 
 ---
+1. **Fork** this repository on GitHub (click the "Fork" button in the top right corner). **Uncheck** "Copy the `main` branch only" so that all exercise branches are included in your fork.
+2. **Clone** your fork:
+
+```bash
+git clone https://github.com/<your-username>/CI-CD-MCM.git
+cd CI-CD-MCM
+```
+
+3. Switch to the respective exercise branch:
 
 ## Tasks
 
