@@ -75,3 +75,21 @@ jobs:
   # TODO: Add sonarcloud job
   # Hint: Use the SonarSource/sonarqube-scan-action or sonarcloud-github-action
   # You will need to configure sonar-project.properties
+  sonarcloud:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-ubuntu-latest-1.26
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
