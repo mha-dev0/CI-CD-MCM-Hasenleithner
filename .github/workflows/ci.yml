@@ -62,7 +62,7 @@ jobs:
           go-version: "1.24"
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@2bff0e3f1cc5f6dcd18755dc3a0d9e997f2bdef2
+        uses: golangci/golangci-lint-action@d6238b002a20823d52840fda27e2d4891c5952dc
         with:
           version: latest
 
