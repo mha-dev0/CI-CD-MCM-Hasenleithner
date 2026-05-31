@@ -1,28 +1,29 @@
-# Exercise 3: CI Pipeline -- SonarCloud, Matrix Builds & Linting
+# Exercise 4: Vulnerability Scanning & Kubernetes Deployment
 
 **Course:** Continuous Delivery in Agile Software Development (Master)
 **Points:** 24
 
 ## Learning Objectives
 
-- Extend a CI pipeline with quality gates and code analysis
-- Configure SonarCloud for static code analysis and coverage tracking
-- Use matrix builds to test across multiple Go versions
-- Integrate linting with golangci-lint
-- Understand code quality metrics and technical debt
+- Integrate vulnerability scanning into the CI/CD pipeline
+- Scan Docker images and Go dependencies for known vulnerabilities
+- Deploy a multi-tier application to Kubernetes (Minikube)
+- Understand Kubernetes concepts: Deployments, Services, Secrets, Probes
 
 ## Prerequisites
 
-- Completed Exercise 2 (working CI pipeline with Docker build)
-- SonarCloud account (free for open-source projects)
-- Understanding of GitHub Actions workflow syntax
+- Completed Exercise 3 (CI pipeline with quality gates)
+- Docker Desktop installed
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/) installed
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) installed
+- [Trivy](https://aquasecurity.github.io/trivy/) installed (optional, for local scanning)
 
 ## What's New in This Exercise
 
-- **Matrix builds** in `.github/workflows/ci.yml` -- test across multiple Go versions
-- **SonarCloud configuration** (`sonar-project.properties`) -- static analysis setup
-- **golangci-lint configuration** (`.golangci.yml`) -- linter rules
-- **Coverage reporting** -- `go test -coverprofile`
+- **Kubernetes manifests** (`k8s/`) -- Deployment, Service, Secret, PVC
+- **Trivy scanning** -- container image vulnerability scanning
+- **Dependency scanning** -- Go module vulnerability checks
+- **Complete CD pipeline** -- from code to running in Kubernetes
 
 ---
 1. **Fork** this repository on GitHub (click the "Fork" button in the top right corner). **Uncheck** "Copy the `main` branch only" so that all exercise branches are included in your fork.
@@ -37,39 +38,75 @@ cd CI-CD-MCM
 
 ## Tasks
 
+### Task 1: Vulnerability Scanning -- Docker Image (6 Points)
 ### Task 1: Matrix Builds (4 Points)
 
-The CI workflow already has a matrix strategy with one Go version. Your tasks:
+1. **Build the Docker image locally:**
+   ```bash
+   docker build -t product-catalog:latest .
+   ```
 
+2. **Scan the image with Trivy:**
+   ```bash
+   trivy image product-catalog:latest
+   ```
+
+3. **Analyze the results:**
+   - How many vulnerabilities were found? Categorize by severity (CRITICAL, HIGH, MEDIUM, LOW).
+   - Which base image contributes the most vulnerabilities?
+   - Can you reduce vulnerabilities by changing the base image? Try switching to `scratch` or `distroless`.
 1. **Extend the matrix** to include Go versions `1.25` and `1.26` (see the TODO in `ci.yml`).
 2. **Verify** that the pipeline runs tests for both Go versions in parallel.
 3. **Add an OS matrix dimension** (`ubuntu-latest`, `macos-latest`) so tests run on both platforms.
 
-**Expected result:** 4 parallel test jobs (2 Go versions x 2 OS).
+4. **Add a Trivy scan job to the CI pipeline** (see the TODO in `ci.yml`) that:
+   - Runs after the `docker-build` job
+   - Scans the built Docker image using `aquasecurity/trivy-action@master`
+   - Fails the build if CRITICAL or HIGH vulnerabilities are found
+   - Outputs results in `table` format
 
-**Deliverable:** Screenshot of the GitHub Actions matrix view showing all jobs.
+   > **Hint:** The Trivy action needs `image-ref`, `format`, `exit-code`, and `severity` parameters.
+
+5. **Upload the Trivy scan results as a build artifact:**
+   - Generate a JSON report (use `format: 'json'` and `output` parameter)
+   - Upload it using `actions/upload-artifact@v4`
+   - Use `if: always()` so the report is uploaded even if the scan finds vulnerabilities
+
+**Deliverable:** Trivy scan output (before and after base image optimization). Updated CI workflow. Trivy JSON report downloadable as artifact from the Actions run.
 
 ---
 
+### Task 2: Vulnerability Scanning -- Dependencies (4 Points)
+
+1. **Scan Go dependencies:**
+   ```bash
+   # Using govulncheck (official Go vulnerability checker)
+   go install golang.org/x/vuln/cmd/govulncheck@latest
+   govulncheck ./...
+   ```
 ### Task 2: Linting with golangci-lint (6 Points)
 
-1. **Add a `lint` job** to the CI workflow that:
-   - Runs `golangci-lint` using the `golangci/golangci-lint-action@v4` action
-   - Uses the `.golangci.yml` configuration file
-   - Runs in parallel with the test matrix (does not depend on `test`)
+2. **Add a `vulnerability-scan` job to the CI pipeline** (see the TODO in `ci.yml`) that:
+   - Runs after the `test` job
+   - Installs `govulncheck` and runs it against the codebase
+   - Fails if known vulnerabilities are found
 
-2. **Enable additional linters** in `.golangci.yml` (see TODOs):
-   - `gofmt` -- enforces standard Go formatting
-   - `gocyclo` -- detects overly complex functions
-   - `misspell` -- catches common typos
-   - `gocritic` -- advanced Go code analysis
+   > **Hint:** Use `go install golang.org/x/vuln/cmd/govulncheck@latest` to install the tool.
 
-3. **Fix any linting issues** that are reported in the existing code.
+3. **If vulnerabilities are found:**
+   - Update the affected dependencies (`go get -u <module>`)
+   - Document the CVEs and how you resolved them
 
-**Deliverable:** Clean lint run (no warnings). Screenshot of the lint job passing.
+**Deliverable:** govulncheck output. Updated `go.mod` if changes were needed.
 
 ---
 
+### Task 3: Kubernetes Deployment with Minikube (8 Points)
+
+1. **Start Minikube:**
+   ```bash
+   minikube start
+   ```
 ### Task 3: SonarCloud Integration (8 Points)
 
 1. **Create a SonarCloud project:**
@@ -90,26 +127,93 @@ The CI workflow already has a matrix strategy with one Go version. Your tasks:
 
    > **Hint:** Look at the `sonar-project.properties` file to understand what SonarCloud expects.
 
-4. **Add the `SONAR_TOKEN` secret** to your repository settings.
+2. **Build the image inside Minikube's Docker daemon:**
+   ```bash
+   eval $(minikube docker-env)
+   docker build -t product-catalog:latest .
+   ```
 
-5. **Review the SonarCloud dashboard:**
-   - What is the code coverage percentage?
-   - Are there any code smells or bugs detected?
-   - What is the technical debt estimate?
+3. **Deploy the application:**
+   ```bash
+   kubectl apply -f k8s/namespace.yml
+   kubectl apply -f k8s/postgres-deployment.yml
+   kubectl apply -f k8s/api-deployment.yml
+   ```
 
-**Deliverable:** Link to your SonarCloud project dashboard. Screenshot showing the quality gate result.
+4. **Verify the deployment:**
+   ```bash
+   kubectl get all -n product-catalog
+   kubectl logs deployment/product-catalog-api -n product-catalog
+   ```
+
+5. **Access the API:**
+   ```bash
+   minikube service product-catalog-api -n product-catalog --url
+   # Use the returned URL to test the API
+   curl <URL>/health
+   curl <URL>/products
+   ```
+
+6. **Test CRUD operations** against the Kubernetes-deployed API.
+
+**Deliverable:** Screenshots of:
+- `kubectl get all -n product-catalog` output
+- Successful API calls to the Kubernetes-hosted service
+- Pod logs showing healthy operation
 
 ---
 
-### Task 4: Code Coverage Improvement (6 Points)
+### Task 4: Production Readiness (6 Points)
 
-1. **Check current coverage:**
+1. **Scaling:** Scale the API deployment to 3 replicas and verify all pods are running:
    ```bash
-   go test -coverprofile=coverage.out ./...
-   go tool cover -func=coverage.out
-   go tool cover -html=coverage.out -o coverage.html
+   kubectl scale deployment product-catalog-api --replicas=3 -n product-catalog
+   kubectl get pods -n product-catalog
    ```
 
+2. **Health Checks:** The Kubernetes manifests include `readinessProbe` and `livenessProbe`. Explain:
+   - What is the difference between a readiness and a liveness probe?
+   - What happens if the readiness probe fails? What about the liveness probe?
+   - Why are different `initialDelaySeconds` values used?
+
+3. **Resource Limits:** The API deployment specifies CPU and memory limits. Explain:
+   - What happens if a pod exceeds its memory limit?
+   - What happens if it exceeds its CPU limit?
+   - Why are requests and limits both specified?
+
+**Deliverable:** Add a `K8S.md` file with your answers and screenshots.
+
+---
+
+## Kubernetes Manifest Overview
+
+| File | Contents |
+|------|----------|
+| `k8s/namespace.yml` | Namespace `product-catalog` |
+| `k8s/postgres-deployment.yml` | PostgreSQL Deployment, Service, Secret, PVC |
+| `k8s/api-deployment.yml` | API Deployment (2 replicas), NodePort Service |
+
+---
+
+## Useful Commands
+
+```bash
+# Minikube
+minikube start / stop / delete
+minikube dashboard                    # Open Kubernetes dashboard
+eval $(minikube docker-env)           # Use Minikube's Docker daemon
+
+# kubectl
+kubectl get pods -n product-catalog
+kubectl describe pod <name> -n product-catalog
+kubectl logs <pod-name> -n product-catalog
+kubectl exec -it <pod-name> -n product-catalog -- /bin/sh
+kubectl port-forward svc/product-catalog-api 8080:8080 -n product-catalog
+
+# Trivy
+trivy image <image>
+trivy fs .                            # Scan filesystem/dependencies
+```
 2. **Improve coverage to at least 80%** by adding tests for uncovered code paths. Focus on:
    - Edge cases in handlers (invalid IDs, malformed JSON)
    - Error paths in the store layer
@@ -134,6 +238,10 @@ The CI workflow already has a matrix strategy with one Go version. Your tasks:
 
 | Task | Points |
 |------|--------|
+| Vulnerability Scanning -- Docker Image | 6 |
+| Vulnerability Scanning -- Dependencies | 4 |
+| Kubernetes Deployment with Minikube | 8 |
+| Production Readiness | 6 |
 | Matrix Builds | 4 |
 | Linting with golangci-lint | 6 |
 | SonarCloud Integration | 8 |
