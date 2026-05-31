@@ -57,6 +57,29 @@ jobs:
           push: false
           tags: product-catalog:${{ github.sha }}
 
+      - name: Run Trivy vulnerability scanner (Fail Build)
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          image-ref: "product-catalog:${{ github.sha }}"
+          format: "table"
+          exit-code: "1" # Fails the pipeline if vulnerabilities match criteria
+          severity: "CRITICAL,HIGH"
+
+      - name: Run Trivy vulnerability scanner (Generate JSON Report)
+        if: always() # Ensures the report is built even if the previous step failed
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          image-ref: "product-catalog:${{ github.sha }}"
+          format: "json"
+          output: "trivy-results.json"
+
+      - name: Upload Trivy scan artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-json-report
+          path: trivy-results.json
+
   # TODO: Add sonarcloud job
   # Hint: Use the SonarSource/sonarqube-scan-action or sonarcloud-github-action
   # You will need to configure sonar-project.properties
